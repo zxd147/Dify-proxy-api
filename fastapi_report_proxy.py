@@ -132,3 +132,9 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=9000)
+
+'''
+nohup python fastapi_report_proxy.py > fastapi.log 2>&1 &
+'''
+
+
