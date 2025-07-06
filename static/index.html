@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>广州融杰报告审查系统</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:," />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    html, body {
+      height: 100vh;
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: #f4f4f4;
+      color: #222;
+      overflow: hidden;
+    }
+    .header {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      padding: 2rem 1rem 1rem;
+      color: #111;
+    }
+    .container {
+      display: flex;
+      max-width: 1200px;
+      margin: auto;
+      padding: 1rem;
+      gap: 2rem;
+      height: calc(100vh - 100px);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .panel {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: flex 0.3s ease;
+    }
+    .container.show-result .panel:first-child {
+      flex: 0 0 240px;
+    }
+    .container.show-result .panel:last-child {
+      flex: 1 1 auto;
+    }
+    .panel:last-child {
+      overflow: hidden;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #111;
+    }
+    .upload-btn,
+    .submit-btn,
+    .download-btn {
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .upload-btn:disabled,
+    .submit-btn:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+    .file-label {
+      font-size: 0.9rem;
+      color: #666;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+      min-height: 100px;
+    }
+    .output-box {
+      flex: 1;
+      min-height: 0;
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      word-wrap: break-word;
+      word-break: break-word;       /* 优雅换行 */
+      white-space: normal;          /* 关键：允许html标签正常渲染 */
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 1.25rem;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .output-box h1, .output-box h2, .output-box h3 {
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    .output-box ul {
+      padding-left: 1.5rem;
+      list-style-type: disc;
+    }
+    .output-box ol {
+      padding-left: 1.5rem;
+      list-style-type: decimal;
+    }
+    .output-box pre, .output-box code {
+      font-family: monospace;
+      background: #eee;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+    .output-box hr {
+      border: none;
+      border-top: 1px solid #ccc;
+      margin: 1rem 0;
+    }
+    .output-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+    .spinner {
+      margin-left: 0.5rem;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #ccc;
+      border-top-color: #111;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #555;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.6rem;
+      cursor: pointer;
+    }
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+      }
+      .panel {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">广州融杰报告审查系统</div>
+  <div class="container">
+    <div class="panel">
+      <div>
+        <div class="section-title">规则库</div>
+        <input type="file" id="ruleFile" hidden />
+        <button class="upload-btn" id="ruleUploadBtn" disabled>上传规则</button>
+        <div class="file-label" id="ruleFileLabel"></div>
+      </div>
+      <div>
+        <div class="section-title">检测单</div>
+        <input type="file" id="detectFile" hidden accept=".pdf" />
+        <button class="upload-btn" id="detectUploadBtn" disabled>上传检测单</button>
+        <div class="file-label" id="detectFileLabel"></div>
+      </div>
+      <div>
+        <label class="section-title" for="userInput">附加信息</label>
+        <textarea id="userInput" placeholder="请输入附加信息，可留空..."></textarea>
+      </div>
+      <button class="submit-btn" id="submitBtn" disabled>提交审查</button>
+    </div>
+    <div class="panel" style="position: relative;">
+      <div class="section-title">审查报告输出</div>
+      <button class="copy-btn" onclick="copyOutput()">📋 复制</button>
+      <div class="output-box" id="outputMarkdown">等待提交审查后显示内容...</div>
+      <div class="output-controls">
+        <button class="download-btn" onclick="downloadOutput()">导出报告</button>
+        <button class="download-btn" onclick="clearOutput()" style="background: #888;">清空</button>
+        <div id="loadingSpinner" class="spinner" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const uploadURL = '/proxy/files/upload';
+  const chatURL = '/proxy/chat-messages';
+
+  const ruleFile = document.getElementById('ruleFile');
+  const detectFile = document.getElementById('detectFile');
+  const ruleFileLabel = document.getElementById('ruleFileLabel');
+  const detectFileLabel = document.getElementById('detectFileLabel');
+  const ruleUploadBtn = document.getElementById('ruleUploadBtn');
+  const detectUploadBtn = document.getElementById('detectUploadBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const outputMarkdown = document.getElementById('outputMarkdown');
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  const container = document.querySelector('.container');
+
+  let currentUser = 'default-user';
+  let ruleFileId = null;
+  let detectFileId = null;
+  let fullAnswer = '';
+
+  ruleUploadBtn.onclick = () => ruleFile.click();
+  detectUploadBtn.onclick = () => detectFile.click();
+
+  async function handleFileUpload(input, label, callback) {
+    const file = input.files[0];
+    if (!file) return;
+    if (input.id === 'detectFile' && file.type !== 'application/pdf' &&
+        !file.name.toLowerCase().endsWith('.pdf')) {
+      label.textContent = '仅支持上传 PDF 文件';
+      return;
+    }
+    label.textContent = `上传中：${file.name}`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('user', currentUser);
+    try {
+      const res = await fetch(uploadURL, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.id) {
+        label.textContent = `已上传：${file.name}`;
+        callback(data.id);
+        checkReady();
+      } else {
+        label.textContent = '上传失败';
+      }
+    } catch (err) {
+      label.textContent = '上传失败';
+      console.error('上传出错:', err);
+    }
+  }
+
+  ruleFile.onchange = () => handleFileUpload(ruleFile, ruleFileLabel, id => ruleFileId = id);
+  detectFile.onchange = () => handleFileUpload(detectFile, detectFileLabel, id => detectFileId = id);
+
+  function checkReady() {
+    submitBtn.disabled = !(ruleFileId && detectFileId);
+  }
+
+  submitBtn.onclick = async () => {
+    let shown = false;
+    const query = document.getElementById('userInput').value.trim() || '开始';
+    fullAnswer = '';
+    outputMarkdown.innerHTML = '';
+    loadingSpinner.style.display = 'inline-block';
+    submitBtn.disabled = true;
+
+    const body = {
+      query,
+      user: currentUser,
+      inputs: {
+        rule_file: {
+          type: 'document',
+          transfer_method: 'local_file',
+          upload_file_id: ruleFileId,
+        },
+      },
+      response_mode: 'streaming',
+      conversation_id: '',
+      files: [
+        {
+          type: 'document',
+          transfer_method: 'local_file',
+          upload_file_id: detectFileId,
+        },
+      ],
+    };
+
+    try {
+      const res = await fetch(chatURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (let line of lines) {
+          if (!line.trim().startsWith('data:')) continue;
+          const content = line.trim().slice(5).trim();
+          if (content === '[DONE]') continue;
+          try {
+            const json = JSON.parse(content);
+            if (json.answer) {
+              fullAnswer += json.answer;
+              outputMarkdown.innerHTML = marked.parse(fullAnswer || '');
+              outputMarkdown.scrollTop = outputMarkdown.scrollHeight;
+              if (!shown) {
+                container.classList.add('show-result');
+                shown = true;
+              }
+            }
+          } catch (e) {
+            console.warn('JSON 解析失败:', content);
+          }
+        }
+      }
+    } catch (err) {
+      outputMarkdown.innerHTML = `发生错误：${err.message}`;
+    } finally {
+      submitBtn.disabled = false;
+      loadingSpinner.style.display = 'none';
+    }
+  };
+
+  function downloadOutput() {
+    const blob = new Blob([fullAnswer], { type: 'text/markdown' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '审查报告.md';
+    a.click();
+  }
+
+  function copyOutput() {
+    if (!fullAnswer) {
+      alert('没有内容可复制');
+      return;
+    }
+    navigator.clipboard.writeText(fullAnswer)
+      .then(() => alert('内容已复制到剪贴板'))
+      .catch(() => alert('复制失败，请手动复制'));
+  }
+
+  function clearOutput() {
+    fullAnswer = '';
+    outputMarkdown.innerHTML = '等待提交审查后显示内容...';
+    container.classList.remove('show-result');
+  }
+
+  async function getUserIdentity() {
+    try {
+      const ip = await fetch('/proxy/whoami')
+        .then(res => res.json())
+        .then(data => data.ip || 'unknown');
+      const os = navigator.platform || 'unknown-os';
+      const ua = navigator.userAgent;
+      let browser = 'unknown';
+      if (ua.includes('Chrome')) browser = 'Chrome';
+      else if (ua.includes('Firefox')) browser = 'Firefox';
+      else if (ua.includes('Safari')) browser = 'Safari';
+      else if (ua.includes('Edge')) browser = 'Edge';
+      const now = new Date().toISOString().slice(0, 19);
+      return `${ip}@${os}:${browser}/${now}`;
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    currentUser = await getUserIdentity();
+    ruleUploadBtn.disabled = false;
+    detectUploadBtn.disabled = false;
+    checkReady();
+  });
+</script>
+</body>
+</html>
