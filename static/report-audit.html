@@ -340,10 +340,13 @@
   };
 
   function downloadOutput() {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 14); // 格式如：20250707_104530
+    const filename = `审查报告_${timestamp}.md`;
     const blob = new Blob([fullAnswer], { type: 'text/markdown' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = '审查报告.md';
+    a.download = filename;
     a.click();
   }
 
@@ -390,7 +393,7 @@
       const now = new Date().toISOString().slice(0, 19);
       const clientId = getOrCreateClientId();
 
-      // ������ 合并两个方案
+      // �� 合并两个方案
       const fullId = `${clientId}@${os}:${browser}/${ip} [${now}]`;
       return fullId;
     } catch {

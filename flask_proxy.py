@@ -3,7 +3,7 @@ from datetime import datetime
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_file
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -18,7 +18,12 @@ CORS(app)  # 启用所有路由的 CORS 支持
 
 @app.route("/")
 def index():
-    return "代理服务器运行中"
+    return "Flask 代理服务器运行中"
+
+@app.route("/web")
+def get_web_source():
+    web_source = "static/report-audit.html"
+    return send_file(web_source, mimetype="text/html")
 
 @app.route('/proxy/whoami')
 def proxy_whoami():
@@ -99,10 +104,11 @@ def proxy_chat():
 
 
 if __name__ == "__main__":
+    print(f"🚀 Flask 服务启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
     app.run(host="0.0.0.0", port=9001)
 
 '''
-nohup python flask_report_proxy.py > flask.log 2>&1 &
+nohup python -u flask_proxy.py > flask.log 2>&1 &
 '''
 
 

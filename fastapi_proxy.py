@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, UploadFile, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import StreamingResponse, JSONResponse
+from starlette.responses import StreamingResponse, JSONResponse, FileResponse
 
 load_dotenv()  # 读取 .env 文件
 
@@ -25,8 +25,12 @@ app.add_middleware(
 
 @app.get("/")
 async def index():
-    return "代理服务器运行中"
+    return "FastAPI 代理服务器运行中"
 
+@app.get("/web")
+def get_web_source():
+    web_source = "static/report-audit.html"
+    return FileResponse(web_source, media_type="text/html")
 
 @app.get("/proxy/whoami")
 async def proxy_whoami(request: Request):
@@ -131,10 +135,11 @@ async def proxy_chat(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
+    print(f"🚀 FastAPI 服务启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
     uvicorn.run(app, host="0.0.0.0", port=9000)
 
 '''
-nohup python fastapi_report_proxy.py > fastapi.log 2>&1 &
+nohup python -u fastapi_proxy.py > fastapi.log 2>&1 &
 '''
 
 
